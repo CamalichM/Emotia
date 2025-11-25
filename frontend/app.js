@@ -197,6 +197,7 @@ window.addEventListener('load', () => {
 
                 if (data.items.length === 0) {
                     showToast("No analyzable content found.", "info");
+                    if (downloadBtn) downloadBtn.classList.add('hidden');
                 } else {
                     showToast(`Analysis complete! Found ${data.items.length} emotional points.`, "success");
                     if (downloadBtn) downloadBtn.classList.remove('hidden');
@@ -210,6 +211,7 @@ window.addEventListener('load', () => {
                 console.error("Analysis error:", error);
                 showToast(error.message, "error");
                 currentAnalysisItems = [];
+                if (downloadBtn) downloadBtn.classList.add('hidden');
             } finally {
                 // Restore button state
                 scrapeBtn.innerHTML = '<span class="btn-text">ANALYZE</span><div class="btn-glow"></div>';

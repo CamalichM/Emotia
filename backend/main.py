@@ -146,22 +146,31 @@ def get_items():
 @app.post("/download_report")
 async def download_report_endpoint(request: ReportRequest):
     try:
-        # Convert Pydantic models to dicts
+        print(f"Received download request for {len(request.items)} items")
         items_data = [item.dict() for item in request.items]
         
-        # Generate PDF
-        filename = "emotia_report.pdf"
-        generate_report_pdf(items_data, filename)
-        
-        # Read file into memory
-        with open(filename, "rb") as f:
-            pdf_content = f.read()
+        import tempfile
+        # Create a temp file but close it immediately so FPDF can open it
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            filename = tmp.name
             
-        # Cleanup
-        if os.path.exists(filename):
-            os.remove(filename)
+        print(f"Generating PDF to temp file: {filename}")
+        try:
+            generate_report_pdf(items_data, filename)
+            print("PDF generated successfully")
             
-        # Return as stream
+            # Read file into memory
+            with open(filename, "rb") as f:
+                pdf_content = f.read()
+            print(f"Read PDF content: {len(pdf_content)} bytes")
+        finally:
+            # Cleanup
+            if os.path.exists(filename):
+                try:
+                    os.remove(filename)
+                except Exception as e:
+                    print(f"Cleanup warning: {e}")
+            
         return StreamingResponse(
             io.BytesIO(pdf_content),
             media_type="application/pdf",
@@ -169,4 +178,6 @@ async def download_report_endpoint(request: ReportRequest):
         )
     except Exception as e:
         print(f"Report Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
