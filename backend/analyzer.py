@@ -1,7 +1,27 @@
 from textblob import TextBlob
 import re
+import logging
 
-# Keyword Dictionaries
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Global variable for the model pipeline
+emotion_classifier = None
+
+try:
+    from transformers import pipeline
+    # Load the model. This will download it on the first run.
+    # We use a smaller, faster model: j-hartmann/emotion-english-distilroberta-base
+    logger.info("Loading AI Emotion Model...")
+    emotion_classifier = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", return_all_scores=True)
+    logger.info("AI Emotion Model Loaded Successfully!")
+except ImportError:
+    logger.warning("Transformers library not found. Falling back to keyword/sentiment analysis.")
+except Exception as e:
+    logger.error(f"Failed to load AI model: {e}. Falling back to keyword/sentiment analysis.")
+
+# Keyword Dictionaries (Fallback)
 KEYWORDS = {
     "joy": [
         "happy", "delight", "awesome", "great", "love", "wonderful", "fantastic", 
@@ -35,15 +55,13 @@ def get_keyword_emotion(text: str):
     
     for emotion, words in KEYWORDS.items():
         for word in words:
-            # Simple word boundary check to avoid partial matches (e.g. 'mad' in 'made')
             if re.search(r'\b' + re.escape(word) + r'\b', text_lower):
                 scores[emotion] += 1
                 
-    # Find the emotion with the max score
     best_emotion = max(scores, key=scores.get)
     
     if scores[best_emotion] > 0:
-        return best_emotion, 0.8 + (0.1 * min(scores[best_emotion], 2)) # Base score 0.8, max 1.0
+        return best_emotion, 0.8 + (0.1 * min(scores[best_emotion], 2))
     return None, 0
 
 def analyze_emotion(text: str):
@@ -51,17 +69,49 @@ def analyze_emotion(text: str):
     Analyzes the sentiment of the text and maps it to a primary emotion.
     Returns a dictionary with emotion label and intensity score.
     """
-    # 1. Try Keyword Matching First
+    # 1. Try AI Model if available
+    if emotion_classifier:
+        try:
+            # Model returns a list of lists of dicts
+            results = emotion_classifier(text)[0]
+            # Sort by score descending
+            results.sort(key=lambda x: x['score'], reverse=True)
+            top_result = results[0]
+            
+            ai_emotion = top_result['label']
+            ai_score = top_result['score']
+            
+            # Map model labels to our palette
+            mapped_emotion = "neutral"
+            if ai_emotion == "joy": mapped_emotion = "joy"
+            elif ai_emotion == "sadness": mapped_emotion = "sadness"
+            elif ai_emotion == "anger": mapped_emotion = "anger"
+            elif ai_emotion == "fear": mapped_emotion = "fear"
+            elif ai_emotion == "disgust": mapped_emotion = "anger"
+            elif ai_emotion == "surprise": mapped_emotion = "energy"
+            elif ai_emotion == "neutral": mapped_emotion = "neutral"
+            
+            return {
+                "text": text,
+                "emotion": mapped_emotion,
+                "score": ai_score,
+                "method": "ai_transformer"
+            }
+        except Exception as e:
+            logger.error(f"AI Inference failed: {e}")
+            # Fall through to fallback
+
+    # 2. Fallback: Keyword Matching
     keyword_emotion, keyword_score = get_keyword_emotion(text)
     if keyword_emotion:
         return {
             "text": text,
             "emotion": keyword_emotion,
             "score": keyword_score,
-            "method": "keyword"
+            "method": "keyword_fallback"
         }
 
-    # 2. Fallback to TextBlob Sentiment Analysis
+    # 3. Fallback: TextBlob Sentiment
     blob = TextBlob(text)
     polarity = blob.sentiment.polarity
     subjectivity = blob.sentiment.subjectivity
@@ -76,11 +126,9 @@ def analyze_emotion(text: str):
         emotion = "sadness"
         score = abs(polarity)
     elif subjectivity > 0.6 and polarity < 0:
-        # High subjectivity + negative often implies anger
         emotion = "anger"
         score = subjectivity
     elif subjectivity > 0.6 and polarity > 0:
-        # High subjectivity + positive often implies excitement/energy
         emotion = "energy"
         score = subjectivity
     else:
@@ -93,5 +141,5 @@ def analyze_emotion(text: str):
         "score": score,
         "polarity": polarity,
         "subjectivity": subjectivity,
-        "method": "sentiment"
+        "method": "sentiment_fallback"
     }
