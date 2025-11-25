@@ -103,7 +103,19 @@ window.addEventListener('load', () => {
 
     if (downloadBtn) {
         downloadBtn.addEventListener('click', async () => {
-            if (currentAnalysisItems.length === 0) return;
+            if (currentAnalysisItems.length === 0) {
+                showToast("Run an analysis before downloading the report.", "info");
+                return;
+            }
+
+            const sanitizedItems = currentAnalysisItems.map(({ text, emotion, score, method, polarity, subjectivity }) => ({
+                text,
+                emotion,
+                score,
+                method,
+                polarity,
+                subjectivity
+            }));
 
             downloadBtn.innerHTML = '<span class="spinner"></span>';
             downloadBtn.disabled = true;
@@ -112,10 +124,17 @@ window.addEventListener('load', () => {
                 const response = await fetch('/download_report', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: currentAnalysisItems })
+                    body: JSON.stringify({ items: sanitizedItems })
                 });
 
-                if (!response.ok) throw new Error("Failed to generate report");
+                if (!response.ok) {
+                    let detail = "Failed to generate report";
+                    try {
+                        const errData = await response.json();
+                        detail = errData.detail || detail;
+                    } catch (_) { }
+                    throw new Error(detail);
+                }
 
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
