@@ -2,6 +2,9 @@ from fpdf import FPDF
 from collections import Counter
 
 class PDFReport(FPDF):
+    """
+    Custom PDF class inheriting from FPDF to handle header, footer, and custom layouts.
+    """
     def header(self):
         self.set_font('Arial', 'B', 15)
         self.cell(0, 10, 'Emotia - Emotional Analysis Report', 0, 1, 'C')
@@ -13,17 +16,16 @@ class PDFReport(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
     def chapter_title(self, title):
+        """Adds a styled chapter title."""
         self.set_font('Arial', 'B', 12)
         self.set_fill_color(200, 220, 255)
         self.cell(0, 6, title, 0, 1, 'L', 1)
         self.ln(4)
 
-    def chapter_body(self, body):
-        self.set_font('Arial', '', 12)
-        self.multi_cell(0, 10, body)
-        self.ln()
-
     def add_statistics(self, items):
+        """
+        Generates a statistics table showing the count and percentage of each emotion.
+        """
         emotions = [item['emotion'] for item in items]
         counts = Counter(emotions)
         total = len(items)
@@ -44,7 +46,7 @@ class PDFReport(FPDF):
         # Table Rows
         self.set_font('Arial', '', 11)
         for emotion, count in counts.most_common():
-            # Sanitize emotion name
+            # Sanitize emotion name to prevent encoding errors
             try:
                 safe_emotion = emotion.encode('latin-1', 'replace').decode('latin-1')
             except:
@@ -59,6 +61,9 @@ class PDFReport(FPDF):
         self.ln(10)
 
     def add_colored_text(self, items):
+        """
+        Writes the full analyzed text, coloring each sentence according to its emotion.
+        """
         self.chapter_title('Detailed Analysis')
         self.set_font('Arial', '', 11)
 
@@ -77,7 +82,7 @@ class PDFReport(FPDF):
             text = item.get('text', '')
             
             # Sanitize text for FPDF (Latin-1 only)
-            # Replace unsupported characters (like emojis) with '?'
+            # Replace unsupported characters (like emojis) with '?' to avoid crashes
             try:
                 text = text.encode('latin-1', 'replace').decode('latin-1')
             except Exception:
@@ -88,15 +93,20 @@ class PDFReport(FPDF):
             self.set_text_color(r, g, b)
             
             # Write text
+            # write() handles wrapping and keeps cursor flowing
             try:
                 self.write(6, text + " ")
-            except Exception as e:
-                print(f"PDF Write Error: {e}")
+            except Exception:
+                pass # Skip if write fails
         
         # Reset color
         self.set_text_color(0, 0, 0)
 
 def generate_report_pdf(items):
+    """
+    Orchestrates the PDF generation process.
+    Returns the PDF content as bytes.
+    """
     pdf = PDFReport()
     pdf.add_page()
 
@@ -107,5 +117,5 @@ def generate_report_pdf(items):
     pdf.add_colored_text(items)
 
     # Return the PDF as raw bytes so callers can stream without touching disk
-    # Use 'replace' to handle any remaining unencodable characters
+    # Use 'replace' to handle any remaining unencodable characters in the final output
     return pdf.output(dest="S").encode("latin-1", errors='replace')

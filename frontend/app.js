@@ -1,14 +1,18 @@
 import { initCanvas, addDataPoint, clearCanvas, spawnDemoParticles } from './canvas.js';
 
+/**
+ * Main Application Logic
+ * Handles UI interactions, API calls, and state management.
+ */
 window.addEventListener('load', () => {
     const scrapeBtn = document.getElementById('scrapeBtn');
     const uiLayer = document.querySelector('.ui-layer');
 
-    // Start the animation loop
+    // Initialize Canvas and Demo
     initCanvas();
     spawnDemoParticles();
 
-    // Input Switching Logic
+    // --- Input Switching Logic ---
     const inputTabsContainer = document.querySelector('.input-tabs');
     const inputs = {
         url: document.getElementById('urlInput'),
@@ -36,14 +40,12 @@ window.addEventListener('load', () => {
                     if (el) el.classList.add('hidden');
                 });
                 inputs[activeType].classList.remove('hidden');
-
-                // Clear any existing tooltip when switching modes
                 hideTooltip();
             }
         });
     }
 
-    // File Input Name Update
+    // --- File Input Handling ---
     const fileInput = document.getElementById('fileInput');
     const fileName = document.getElementById('fileName');
     if (fileInput) {
@@ -56,7 +58,7 @@ window.addEventListener('load', () => {
         });
     }
 
-    // Tooltip Clearing Logic
+    // --- Tooltip Logic ---
     function hideTooltip() {
         const tooltip = document.getElementById('tooltip');
         if (tooltip && !tooltip.classList.contains('hidden')) {
@@ -64,12 +66,13 @@ window.addEventListener('load', () => {
         }
     }
 
+    // Auto-hide tooltip on input interaction
     if (inputs.url) inputs.url.addEventListener('focus', hideTooltip);
     if (inputs.url) inputs.url.addEventListener('input', hideTooltip);
     if (inputs.text) inputs.text.addEventListener('focus', hideTooltip);
     if (inputs.text) inputs.text.addEventListener('input', hideTooltip);
 
-    // Toast Notification System
+    // --- Toast Notification System ---
     function showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
@@ -77,7 +80,6 @@ window.addEventListener('load', () => {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
 
-        // Icon based on type
         let icon = '';
         if (type === 'error') icon = '⚠️';
         else if (type === 'success') icon = '✅';
@@ -86,7 +88,7 @@ window.addEventListener('load', () => {
         toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
         container.appendChild(toast);
 
-        // Remove after 3 seconds
+        // Remove after 4 seconds
         setTimeout(() => {
             toast.classList.add('hiding');
             toast.addEventListener('animationend', () => {
@@ -95,7 +97,7 @@ window.addEventListener('load', () => {
         }, 4000);
     }
 
-    // Download Report Logic
+    // --- Download Report Logic ---
     const downloadBtn = document.getElementById('downloadBtn');
     let currentAnalysisItems = [];
 
@@ -136,16 +138,16 @@ window.addEventListener('load', () => {
         });
     }
 
+    // --- Analysis Logic ---
     if (scrapeBtn) {
         scrapeBtn.addEventListener('click', async () => {
             // UI Feedback
-            const originalBtnText = scrapeBtn.innerHTML;
             scrapeBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
             scrapeBtn.disabled = true;
             if (downloadBtn) downloadBtn.classList.add('hidden');
             hideTooltip();
 
-            // Ensure the UI stays in the analyzed state
+            // Transition UI to analyzed state
             if (!uiLayer.classList.contains('analyzed')) {
                 uiLayer.classList.add('analyzed');
             }
@@ -153,6 +155,7 @@ window.addEventListener('load', () => {
             try {
                 let response;
 
+                // Handle different input types
                 if (activeType === 'url') {
                     const url = inputs.url.value;
                     if (!url) throw new Error("Please enter a URL.");

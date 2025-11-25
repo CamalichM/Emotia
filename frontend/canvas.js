@@ -1,14 +1,13 @@
 const canvas = document.getElementById('gravityCanvas');
 const ctx = canvas.getContext('2d');
-const tooltip = document.getElementById('tooltip');
 
 let width, height;
 let particles = [];
-let hoveredParticle = null;
 let activeFilter = 'all';
 let mouse = { x: -1000, y: -1000 }; // Start off-screen
 
-// Emotion physics configurations
+// --- Physics Configuration ---
+// Defines how each emotion behaves in the simulation.
 const EMOTIONS = {
     joy: { color: '#ffd700', gravity: -0.05, friction: 0.98, radiusMult: 1.2, interaction: 'attract' },
     sadness: { color: '#1e90ff', gravity: 0.05, friction: 0.95, radiusMult: 1.0, interaction: 'repel' },
@@ -18,9 +17,11 @@ const EMOTIONS = {
     neutral: { color: '#808080', gravity: 0, friction: 0.95, radiusMult: 0.8, interaction: 'nudge' }
 };
 
-// Global reference for the selected particle
 let selectedParticleRef = null;
 
+/**
+ * Initializes the canvas and event listeners.
+ */
 export function initCanvas() {
     resize();
     window.addEventListener('resize', resize);
@@ -46,7 +47,6 @@ export function initCanvas() {
     const cardText = document.getElementById('cardText');
     const closeCardBtn = document.getElementById('closeCardBtn');
 
-    // Force hide on init
     if (card) {
         card.classList.add('hidden');
         card.style.display = 'none';
@@ -138,7 +138,6 @@ export function spawnDemoParticles() {
     // Spawn a bunch of random particles
     for (let i = 0; i < 20; i++) {
         const randomData = demoTexts[Math.floor(Math.random() * demoTexts.length)];
-        // Add some variation to score
         const data = { ...randomData, score: 0.5 + Math.random() * 0.5 };
         particles.push(new Particle(data));
     }
@@ -177,18 +176,13 @@ class Particle {
         }
 
         // 1. Centering Force (Global Soft Pull)
-        // Pulls everything gently to center, no hard boundary
         const centerX = width / 2;
         const centerY = height / 2;
-
-        // Very weak pull that scales with distance
-        // This allows them to spread out but stay on screen
         const pullStrength = 0.00002;
         this.vx += (centerX - this.x) * pullStrength;
         this.vy += (centerY - this.y) * pullStrength;
 
         // 2. Strong Dispersion (Anti-Clump)
-        // Push away from neighbors
         for (let other of particles) {
             if (other === this) continue;
             const dx2 = this.x - other.x;
@@ -197,9 +191,8 @@ class Particle {
             const repelDist = 200; // Large repulsion radius
 
             if (dist2 < repelDist && dist2 > 0) {
-                // Force is stronger when closer
                 const force = (repelDist - dist2) / repelDist;
-                const strength = 0.01 * force; // Strong push
+                const strength = 0.01 * force;
 
                 this.vx += (dx2 / dist2) * strength;
                 this.vy += (dy2 / dist2) * strength;
@@ -289,14 +282,12 @@ class Particle {
         }
 
         // Hover Text - Fixed Position (Right Side)
-        // Only show if NOT selected (to avoid clutter)
         if (this.isHovered && this !== selectedParticleRef) {
             ctx.fillStyle = '#fff';
             ctx.font = '14px Outfit';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
-            // Draw background pill for text
             const text = this.data.text.length > 30 ? this.data.text.substring(0, 30) + "..." : this.data.text;
             const textWidth = ctx.measureText(text).width;
             const padding = 8;
@@ -356,26 +347,21 @@ function animate() {
             const cardWidth = cardRect.width || 220;
             const cardHeight = cardRect.height || 150;
 
-            // Initial Position: Right of particle, centered vertically
             let cardX = selectedParticleRef.x + selectedParticleRef.radius + 8;
             let cardY = selectedParticleRef.y - cardHeight / 2;
 
-            // 1. Horizontal Clamping
-            // If it goes off the right edge, flip to the left
+            // Horizontal Clamping
             if (cardX + cardWidth > width - 10) {
                 cardX = selectedParticleRef.x - selectedParticleRef.radius - cardWidth - 15;
             }
-            // If flipping makes it go off the left edge, clamp it to the left edge
             if (cardX < 10) {
                 cardX = 10;
             }
 
-            // 2. Vertical Clamping
-            // If it goes off the bottom, shift up
+            // Vertical Clamping
             if (cardY + cardHeight > height - 10) {
                 cardY = height - cardHeight - 10;
             }
-            // If it goes off the top, shift down
             if (cardY < 10) {
                 cardY = 10;
             }
@@ -383,7 +369,6 @@ function animate() {
             card.style.transform = `translate(${cardX}px, ${cardY}px)`;
         }
     } else {
-        // Double safety: Ensure hidden if no particle selected
         const card = document.getElementById('particleCard');
         if (card && !card.classList.contains('hidden')) {
             card.classList.add('hidden');
