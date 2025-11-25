@@ -1,14 +1,15 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import os
 import io
 from pypdf import PdfReader
 from scraper import scrape_url
 from analyzer import analyze_emotion
+from report_generator import generate_report_pdf
 
 # Initialize the API
 app = FastAPI(title="Emotia API", description="Backend for the Emotional Gravity Map")
@@ -23,7 +24,6 @@ app.add_middleware(
 )
 
 # Setup static file serving for the frontend
-# This allows the backend to serve the entire app as a single unit
 current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_dir = os.path.join(current_dir, "../frontend")
 
@@ -35,8 +35,18 @@ class ScrapeRequest(BaseModel):
 class TextRequest(BaseModel):
     text: str
 
+class ReportItem(BaseModel):
+    text: str
+    emotion: str
+    score: float
+    method: Optional[str] = None
+    polarity: Optional[float] = None
+    subjectivity: Optional[float] = None
+
+class ReportRequest(BaseModel):
+    items: List[ReportItem]
+
 # Simple in-memory storage for the current session
-# In a production app, we'd use Redis or a proper DB
 items_db = []
 
 @app.get("/")
@@ -46,10 +56,6 @@ async def read_index():
 
 @app.post("/scrape")
 def scrape_endpoint(request: ScrapeRequest):
-    """
-    Scrapes the given URL, analyzes emotions, and updates the session data.
-    If no URL is provided, defaults to Hacker News for a quick demo.
-    """
     global items_db
     url = request.url
     if not url:
@@ -61,10 +67,7 @@ def scrape_endpoint(request: ScrapeRequest):
     if not snippets:
         raise HTTPException(status_code=400, detail="Could not retrieve content. The site might be blocking scrapers.")
         
-    # Analyze each snippet
     analyzed_items = [analyze_emotion(snippet) for snippet in snippets]
-        
-    # Refresh the session data
     items_db = analyzed_items
     
     return {
@@ -75,10 +78,6 @@ def scrape_endpoint(request: ScrapeRequest):
 
 @app.post("/analyze_text")
 def analyze_text_endpoint(request: TextRequest):
-    """
-    Analyzes raw text input.
-    Splits text into sentences/chunks and analyzes emotions.
-    """
     global items_db
     text = request.text
     if not text:
@@ -86,12 +85,9 @@ def analyze_text_endpoint(request: TextRequest):
         
     print(f"Processing Text Input (length: {len(text)})")
     
-    # Simple splitting by newlines or periods for now
-    # In a real app, use a proper sentence tokenizer (nltk/spacy)
     snippets = [s.strip() for s in text.replace('.', '\n').split('\n') if len(s.strip()) > 2]
     
     if not snippets:
-        # If splitting didn't work well, just use the whole text if it's short enough
         if len(text) > 2:
             snippets = [text]
         else:
@@ -108,9 +104,6 @@ def analyze_text_endpoint(request: TextRequest):
 
 @app.post("/upload_pdf")
 async def upload_pdf_endpoint(file: UploadFile = File(...)):
-    """
-    Parses a PDF file, extracts text, and analyzes emotions.
-    """
     global items_db
     
     if not file.filename.endswith('.pdf'):
@@ -127,10 +120,7 @@ async def upload_pdf_endpoint(file: UploadFile = File(...)):
         for page in reader.pages:
             text += page.extract_text() + "\n"
             
-        # Split into snippets
         snippets = [s.strip() for s in text.replace('.', '\n').split('\n') if len(s.strip()) > 20]
-        
-        # Limit to first 50 snippets to avoid overwhelming the demo
         snippets = snippets[:50]
         
         if not snippets:
@@ -151,5 +141,32 @@ async def upload_pdf_endpoint(file: UploadFile = File(...)):
 
 @app.get("/items")
 def get_items():
-    """Retrieve the currently stored analyzed items."""
     return {"items": items_db}
+
+@app.post("/download_report")
+async def download_report_endpoint(request: ReportRequest):
+    try:
+        # Convert Pydantic models to dicts
+        items_data = [item.dict() for item in request.items]
+        
+        # Generate PDF
+        filename = "emotia_report.pdf"
+        generate_report_pdf(items_data, filename)
+        
+        # Read file into memory
+        with open(filename, "rb") as f:
+            pdf_content = f.read()
+            
+        # Cleanup
+        if os.path.exists(filename):
+            os.remove(filename)
+            
+        # Return as stream
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=emotia_report.pdf"}
+        )
+    except Exception as e:
+        print(f"Report Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

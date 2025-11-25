@@ -76,7 +76,7 @@ window.addEventListener('load', () => {
 
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        
+
         // Icon based on type
         let icon = '';
         if (type === 'error') icon = '⚠️';
@@ -95,12 +95,54 @@ window.addEventListener('load', () => {
         }, 4000);
     }
 
+    // Download Report Logic
+    const downloadBtn = document.getElementById('downloadBtn');
+    let currentAnalysisItems = [];
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', async () => {
+            if (currentAnalysisItems.length === 0) return;
+
+            downloadBtn.innerHTML = '<span class="spinner"></span>';
+            downloadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/download_report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: currentAnalysisItems })
+                });
+
+                if (!response.ok) throw new Error("Failed to generate report");
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "emotia_report.pdf";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                showToast("Report downloaded successfully!", "success");
+            } catch (error) {
+                console.error("Download error:", error);
+                showToast("Failed to download report.", "error");
+            } finally {
+                downloadBtn.innerHTML = '<span class="btn-text">⬇ PDF</span>';
+                downloadBtn.disabled = false;
+            }
+        });
+    }
+
     if (scrapeBtn) {
         scrapeBtn.addEventListener('click', async () => {
             // UI Feedback
             const originalBtnText = scrapeBtn.innerHTML;
             scrapeBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
             scrapeBtn.disabled = true;
+            if (downloadBtn) downloadBtn.classList.add('hidden');
             hideTooltip();
 
             // Ensure the UI stays in the analyzed state
@@ -148,6 +190,7 @@ window.addEventListener('load', () => {
                 }
 
                 const data = await response.json();
+                currentAnalysisItems = data.items; // Store for report
 
                 // Reset and populate the canvas
                 clearCanvas();
@@ -156,6 +199,7 @@ window.addEventListener('load', () => {
                     showToast("No analyzable content found.", "info");
                 } else {
                     showToast(`Analysis complete! Found ${data.items.length} emotional points.`, "success");
+                    if (downloadBtn) downloadBtn.classList.remove('hidden');
                 }
 
                 data.items.forEach(item => {
@@ -165,10 +209,7 @@ window.addEventListener('load', () => {
             } catch (error) {
                 console.error("Analysis error:", error);
                 showToast(error.message, "error");
-                
-                // Revert UI state if it was the first analysis and it failed
-                // But keep it analyzed if we already had content
-                // uiLayer.classList.remove('analyzed'); 
+                currentAnalysisItems = [];
             } finally {
                 // Restore button state
                 scrapeBtn.innerHTML = '<span class="btn-text">ANALYZE</span><div class="btn-glow"></div>';
