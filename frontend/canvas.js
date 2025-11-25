@@ -1,8 +1,10 @@
 const canvas = document.getElementById('gravityCanvas');
 const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
 
 let width, height;
 let particles = [];
+let hoveredParticle = null;
 let activeFilter = 'all';
 let mouse = { x: -1000, y: -1000 }; // Start off-screen
 
@@ -149,18 +151,16 @@ class Particle {
         ctx.globalAlpha = 1.0;
         ctx.fill();
 
-        // Hover Text (Simple implementation)
+        // Hover detection for tooltip
         const dx = mouse.x - this.x;
         const dy = mouse.y - this.y;
-        if (Math.sqrt(dx * dx + dy * dy) < this.radius + 10) {
-            ctx.fillStyle = '#fff';
-            ctx.font = '12px Outfit';
-            ctx.fillText(this.data.text.substring(0, 20) + "...", this.x + 15, this.y);
-        }
+        return Math.sqrt(dx * dx + dy * dy) < this.radius + 14;
     }
 }
 
 function animate() {
+    hoveredParticle = null;
+
     // Trail effect
     ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; // Fades out previous frames
     ctx.fillRect(0, 0, width, height);
@@ -171,7 +171,10 @@ function animate() {
     for (let i = 0; i < particles.length; i++) {
         const p1 = particles[i];
         p1.update();
-        p1.draw();
+        const isHovered = p1.draw();
+        if (isHovered) {
+            hoveredParticle = p1;
+        }
 
         if (activeFilter !== 'all' && p1.data.emotion !== activeFilter) continue;
 
@@ -194,5 +197,18 @@ function animate() {
         }
     }
 
+    updateTooltip();
+
     requestAnimationFrame(animate);
+}
+
+function updateTooltip() {
+    if (!hoveredParticle) {
+        tooltip.classList.add('hidden');
+        return;
+    }
+
+    tooltip.textContent = hoveredParticle.data.text;
+    tooltip.classList.remove('hidden');
+    tooltip.style.transform = `translate(${hoveredParticle.x + hoveredParticle.radius + 14}px, ${hoveredParticle.y - hoveredParticle.radius - 10}px)`;
 }
