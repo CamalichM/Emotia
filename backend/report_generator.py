@@ -44,8 +44,14 @@ class PDFReport(FPDF):
         # Table Rows
         self.set_font('Arial', '', 11)
         for emotion, count in counts.most_common():
+            # Sanitize emotion name
+            try:
+                safe_emotion = emotion.encode('latin-1', 'replace').decode('latin-1')
+            except:
+                safe_emotion = "Unknown"
+                
             percentage = (count / total) * 100
-            self.cell(60, 8, emotion.capitalize(), 1)
+            self.cell(60, 8, safe_emotion.capitalize(), 1)
             self.cell(40, 8, str(count), 1)
             self.cell(40, 8, f"{percentage:.1f}%", 1)
             self.ln()
@@ -101,4 +107,5 @@ def generate_report_pdf(items):
     pdf.add_colored_text(items)
 
     # Return the PDF as raw bytes so callers can stream without touching disk
-    return pdf.output(dest="S").encode("latin-1")
+    # Use 'replace' to handle any remaining unencodable characters
+    return pdf.output(dest="S").encode("latin-1", errors='replace')
