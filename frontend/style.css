@@ -22,6 +22,10 @@ body {
     width: 100vw;
 }
 
+.hidden {
+    display: none !important;
+}
+
 /* Background Gradients */
 body::before {
     content: '';
@@ -154,6 +158,16 @@ button#scrapeBtn {
     transition: all 0.3s ease;
     letter-spacing: 1px;
     font-size: 0.9rem;
+}
+
+#downloadBtn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+}
+
+.ui-layer.analyzed #downloadBtn:not(.hidden) {
+    display: inline-flex;
 }
 
 button#scrapeBtn:hover {
