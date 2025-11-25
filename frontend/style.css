@@ -209,6 +209,29 @@ button#scrapeBtn:hover {
     transform: scale(1.05);
 }
 
+.tooltip {
+    position: absolute;
+    max-width: 320px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 15;
+}
+
+.tooltip.hidden {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
 /* Animations */
 @keyframes fade-in-up {
     from {

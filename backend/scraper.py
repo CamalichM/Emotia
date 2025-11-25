@@ -1,5 +1,12 @@
+import re
 import requests
 from bs4 import BeautifulSoup
+
+def _split_into_sentences(text: str):
+    """Break long text into bite-sized sentences for better visualization."""
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    return [sentence.strip() for sentence in sentences if len(sentence.strip()) > 20]
+
 
 def scrape_url(url: str):
     """
@@ -22,20 +29,33 @@ def scrape_url(url: str):
             tag.decompose()
             
         text_elements = []
+        seen = set()
         
         # Target likely content containers
         # We want meaningful chunks of text, not just menu items
         targets = ['p', 'h1', 'h2', 'h3', 'blockquote', 'li', 'article']
         
         for tag in soup.find_all(targets):
-            text = tag.get_text(strip=True)
-            
+            text = tag.get_text(" ", strip=True)
+
             # Filter out noise: very short strings are usually navigation or UI labels
-            if len(text) > 30: 
-                text_elements.append(text)
+            if len(text) <= 15:
+                continue
+
+            # Split very long paragraphs into sentences to create more data points
+            if len(text) > 180:
+                sentences = _split_into_sentences(text)
+                for sentence in sentences:
+                    if sentence not in seen:
+                        text_elements.append(sentence)
+                        seen.add(sentence)
+            else:
+                if text not in seen:
+                    text_elements.append(text)
+                    seen.add(text)
                 
         # Return a manageable subset to keep the visualization performant
-        return text_elements[:60]
+        return text_elements[:80]
         
     except Exception as e:
         print(f"Scraping failed for {url}: {e}")
