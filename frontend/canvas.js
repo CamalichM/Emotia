@@ -19,6 +19,10 @@ export function addDataPoint(data) {
     particles.push(new Particle(data));
 }
 
+export function resetParticles() {
+    particles = [];
+}
+
 class Particle {
     constructor(data) {
         this.data = data;
@@ -26,15 +30,8 @@ class Particle {
         this.y = height / 2;
         this.vx = (Math.random() - 0.5) * 2;
         this.vy = (Math.random() - 0.5) * 2;
-        this.radius = 5 + data.score * 10;
-
-        // Color based on emotion
-        switch (data.emotion) {
-            case 'joy': this.color = '#ffd700'; break;
-            case 'sadness': this.color = '#1e90ff'; break;
-            case 'anger': this.color = '#ff4500'; break;
-            default: this.color = '#808080';
-        }
+        this.radius = 6 + data.score * 12;
+        this.color = getEmotionColor(data.emotion);
     }
 
     update() {
@@ -62,4 +59,21 @@ function animate() {
         p.draw();
     });
     requestAnimationFrame(animate);
+}
+
+function getEmotionColor(emotion) {
+    switch (emotion) {
+        case 'joy':
+            return '#ffd700';
+        case 'sadness':
+            return '#1e90ff';
+        case 'anger':
+            return '#ff4500';
+        case 'energy':
+            return '#00e0a4';
+        case 'fear':
+            return '#800080';
+        default:
+            return '#808080';
+    }
 }

@@ -9,15 +9,30 @@
 <body>
     <div id="app">
         <header>
-            <h1>Emotia</h1>
+            <div class="brand">
+                <h1>Emotia</h1>
+                <p class="tagline">Emotional web gravity map</p>
+            </div>
             <div class="controls">
-                <input type="text" id="urlInput" placeholder="Enter URL to analyze..." />
+                <input type="text" id="urlInput" placeholder="Paste a URL or leave blank for top news" />
                 <button id="scrapeBtn">Analyze</button>
             </div>
         </header>
         <main>
             <canvas id="gravityCanvas"></canvas>
-            <div id="overlay"></div>
+            <div id="overlay">
+                <div id="statusBar" class="card">
+                    <div id="statusMessage">Ready to explore emotions. Provide a link and hit Analyze.</div>
+                    <div class="helper">Tip: leave the field empty to sample the latest headlines.</div>
+                </div>
+                <div id="itemsPanel" class="card">
+                    <div class="panel-header">
+                        <h2>Insights</h2>
+                        <span id="itemCount">0 items</span>
+                    </div>
+                    <div id="itemsList"></div>
+                </div>
+            </div>
         </main>
     </div>
     <script type="module" src="app.js"></script>

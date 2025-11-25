@@ -7,6 +7,10 @@
     --anger-color: #ff4500;
     --fear-color: #800080;
     --neutral-color: #808080;
+    --success: #1dd1a1;
+    --warning: #feca57;
+    --error: #ff6b6b;
+    --panel: rgba(20, 20, 20, 0.8);
 }
 
 body {
@@ -16,6 +20,10 @@ body {
     color: var(--text-color);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
+    background: radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.08), transparent 30%),
+                radial-gradient(circle at 90% 10%, rgba(30, 144, 255, 0.08), transparent 30%),
+                radial-gradient(circle at 50% 80%, rgba(255, 69, 0, 0.08), transparent 30%),
+                #050505;
 }
 
 header {
@@ -32,11 +40,17 @@ header {
     backdrop-filter: blur(5px);
 }
 
-h1 {
+.brand h1 {
     margin: 0;
-    font-weight: 300;
-    letter-spacing: 2px;
-    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-size: 1.6rem;
+}
+
+.tagline {
+    margin: 0;
+    opacity: 0.7;
+    font-size: 0.9rem;
 }
 
 .controls {
@@ -61,15 +75,144 @@ button {
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, transform 0.1s;
 }
 
 button:hover {
     opacity: 0.8;
 }
 
+button:active {
+    transform: translateY(1px);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 canvas {
     display: block;
     width: 100vw;
     height: 100vh;
+}
+
+#overlay {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    width: 420px;
+    max-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+}
+
+#statusMessage[data-tone='success'] {
+    color: var(--success);
+}
+
+#statusMessage[data-tone='error'] {
+    color: var(--error);
+}
+
+#statusMessage[data-tone='info'] {
+    color: var(--text-color);
+}
+
+.helper {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+#itemCount {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#itemsList {
+    max-height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.item-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.item-text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-joy { background: rgba(255, 215, 0, 0.15); color: var(--joy-color); }
+.badge-sadness { background: rgba(30, 144, 255, 0.15); color: var(--sadness-color); }
+.badge-anger { background: rgba(255, 69, 0, 0.15); color: var(--anger-color); }
+.badge-energy { background: rgba(0, 224, 164, 0.15); color: #00e0a4; }
+.badge-neutral { background: rgba(128, 128, 128, 0.15); color: var(--neutral-color); }
+.badge-fear { background: rgba(128, 0, 128, 0.15); color: var(--fear-color); }
+
+.score {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 600;
+}
+
+@media (max-width: 900px) {
+    #overlay {
+        position: static;
+        width: auto;
+        max-height: none;
+        padding: 12px;
+    }
+
+    main {
+        padding-top: 90px;
+    }
 }

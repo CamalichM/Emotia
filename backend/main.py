@@ -21,6 +21,16 @@ class ScrapeRequest(BaseModel):
 # In-memory storage
 items_db = []
 
+# Lightweight fallback content so the experience still works when live scraping
+# is unavailable (e.g., offline demo environments).
+FALLBACK_SNIPPETS: List[str] = [
+    "Technology is moving so quickly that it's both exciting and overwhelming to keep up.",
+    "The article left me feeling optimistic about the future of renewable energy.",
+    "I was frustrated by the slow customer service response and felt ignored.",
+    "Working with this team fills me with pride and motivation every single day.",
+    "The sudden market downturn caused a wave of anxiety among small investors.",
+]
+
 @app.get("/")
 def read_root():
     return {"message": "Emotia Backend is running"}
@@ -32,12 +42,15 @@ def scrape_endpoint(request: ScrapeRequest):
     if not url:
         # Default URL if none provided
         url = "https://news.ycombinator.com/"
-        
+
     print(f"Scraping {url}...")
     snippets = scrape_url(url)
-    
+
     if not snippets:
-        raise HTTPException(status_code=400, detail="Could not scrape content from URL")
+        # Keep the experience interactive even if live scraping fails.
+        snippets = FALLBACK_SNIPPETS
+        if not snippets:
+            raise HTTPException(status_code=400, detail="Could not scrape content from URL")
         
     analyzed_items = []
     for snippet in snippets:
