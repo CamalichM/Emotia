@@ -20,7 +20,11 @@ scrapeBtn.addEventListener('click', async () => {
     // UI Feedback
     scrapeBtn.textContent = "Analyzing...";
     scrapeBtn.disabled = true;
-    uiLayer.classList.add('analyzed');
+
+    // Ensure the UI stays in the analyzed state (top menu)
+    if (!uiLayer.classList.contains('analyzed')) {
+        uiLayer.classList.add('analyzed');
+    }
 
     try {
         // Call our backend API
@@ -47,7 +51,7 @@ scrapeBtn.addEventListener('click', async () => {
 
     } catch (error) {
         console.error("Analysis error:", error);
-        alert("Something went wrong. Please check if the backend is running.");
+        alert(`Analysis failed: ${error.message}`);
         uiLayer.classList.remove('analyzed'); // Revert UI on error
     } finally {
         // Reset UI

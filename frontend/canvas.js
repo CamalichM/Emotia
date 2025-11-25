@@ -38,6 +38,47 @@ export function initCanvas() {
     });
 
     animate();
+
+    // Click Interaction for Modal
+    const modal = document.getElementById('textModal');
+    const modalEmotion = document.getElementById('modalEmotion');
+    const modalText = document.getElementById('modalText');
+    const closeBtn = document.getElementById('closeModalBtn');
+
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        // Check if any particle was clicked
+        // Iterate backwards to catch top-most particles first
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            const dx = clickX - p.x;
+            const dy = clickY - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < p.radius + 5) { // +5 padding for easier clicking
+                // Open Modal
+                modalEmotion.textContent = p.data.emotion;
+                modalEmotion.style.color = p.color; // Match emotion color
+                modalText.textContent = p.data.text;
+                modal.classList.remove('hidden');
+                break; // Only open for one
+            }
+        }
+    });
+
+    // Close Modal Logic
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
 }
 
 function resize() {
@@ -78,8 +119,8 @@ export function spawnDemoParticles() {
 class Particle {
     constructor(data) {
         this.data = data;
-        this.x = width / 2 + (Math.random() - 0.5) * 400;
-        this.y = height / 2 + (Math.random() - 0.5) * 400;
+        this.x = width / 2 + (Math.random() - 0.5) * 200;
+        this.y = height / 2 + (Math.random() - 0.5) * 200;
         this.vx = (Math.random() - 0.5) * 2;
         this.vy = (Math.random() - 0.5) * 2;
 
@@ -107,61 +148,85 @@ class Particle {
             this.isHovered = false;
         }
 
-        // 1. Base Physics (Gravity & Friction)
-        this.vy += this.config.gravity;
-        this.vx *= this.config.friction;
-        this.vy *= this.config.friction;
+        // 1. Centering Force (Global Soft Pull)
+        // Pulls everything gently to center, no hard boundary
+        const centerX = width / 2;
+        const centerY = height / 2;
 
-        // 2. Mouse Interaction (Magnetic Field)
-        const maxDist = 400;
+        // Very weak pull that scales with distance
+        // This allows them to spread out but stay on screen
+        const pullStrength = 0.00002;
+        this.vx += (centerX - this.x) * pullStrength;
+        this.vy += (centerY - this.y) * pullStrength;
+
+        // 2. Strong Dispersion (Anti-Clump)
+        // Push away from neighbors
+        for (let other of particles) {
+            if (other === this) continue;
+            const dx2 = this.x - other.x;
+            const dy2 = this.y - other.y;
+            const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+            const repelDist = 200; // Large repulsion radius
+
+            if (dist2 < repelDist && dist2 > 0) {
+                // Force is stronger when closer
+                const force = (repelDist - dist2) / repelDist;
+                const strength = 0.01 * force; // Strong push
+
+                this.vx += (dx2 / dist2) * strength;
+                this.vy += (dy2 / dist2) * strength;
+            }
+        }
+
+        // 3. Base Physics (Floaty)
+        this.vy += this.config.gravity * 0.05;
+        this.vx *= 0.98;
+        this.vy *= 0.98;
+
+        // 4. Mouse Interaction
+        const maxDist = 300;
 
         if (dist < maxDist) {
-            const force = (maxDist - dist) / maxDist; // 0 to 1 strength
+            const force = (maxDist - dist) / maxDist;
 
             switch (this.config.interaction) {
-                case 'attract': // Joy
-                    this.vx += dx * 0.0005 * force;
-                    this.vy += dy * 0.0005 * force;
+                case 'attract':
+                    this.vx += dx * 0.0002 * force;
+                    this.vy += dy * 0.0002 * force;
                     break;
-                case 'repel': // Sadness
-                    this.vx -= dx * 0.001 * force;
-                    this.vy -= dy * 0.001 * force;
+                case 'repel':
+                    this.vx -= dx * 0.0005 * force;
+                    this.vy -= dy * 0.0005 * force;
                     break;
-                case 'agitate': // Anger
-                    this.vx += (Math.random() - 0.5) * 2 * force;
-                    this.vy += (Math.random() - 0.5) * 2 * force;
+                case 'agitate':
+                    this.vx += (Math.random() - 0.5) * 0.5 * force;
+                    this.vy += (Math.random() - 0.5) * 0.5 * force;
                     break;
-                case 'flee': // Fear
+                case 'flee':
                     if (dist < 200) {
-                        this.vx -= dx * 0.005 * force;
-                        this.vy -= dy * 0.005 * force;
+                        this.vx -= dx * 0.002 * force;
+                        this.vy -= dy * 0.002 * force;
                     }
                     break;
-                case 'orbit': // Energy
-                    this.vx += -dy * 0.002 * force;
-                    this.vy += dx * 0.002 * force;
+                case 'orbit':
+                    this.vx += -dy * 0.001 * force;
+                    this.vy += dx * 0.001 * force;
                     break;
-                case 'nudge': // Neutral
-                    this.vx -= dx * 0.0002 * force;
-                    this.vy -= dy * 0.0002 * force;
+                case 'nudge':
+                    this.vx -= dx * 0.0001 * force;
+                    this.vy -= dy * 0.0001 * force;
                     break;
             }
         }
 
-        // 3. Emotion Specifics (Passive)
-        if (this.data.emotion === 'anger') {
-            this.x += (Math.random() - 0.5) * 1.5;
-            this.y += (Math.random() - 0.5) * 1.5;
-        }
-
-        // 4. Movement & Boundaries
+        // 5. Movement & Boundaries
         this.x += this.vx;
         this.y += this.vy;
 
-        if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.8; }
-        if (this.x > width - this.radius) { this.x = width - this.radius; this.vx *= -0.8; }
-        if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.8; }
-        if (this.y > height - this.radius) { this.y = height - this.radius; this.vy *= -0.8; }
+        if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
+        if (this.x > width - this.radius) { this.x = width - this.radius; this.vx *= -0.5; }
+        if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.5; }
+        if (this.y > height - this.radius) { this.y = height - this.radius; this.vy *= -0.5; }
     }
 
     draw() {

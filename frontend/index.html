@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<!DOCTYPE html>
-<html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,14 +38,66 @@
                 <button class="filter-btn" data-emotion="joy" style="--glow: #ffd700">Joy</button>
                 <button class="filter-btn" data-emotion="sadness" style="--glow: #1e90ff">Sadness</button>
                 <button class="filter-btn" data-emotion="anger" style="--glow: #ff4500">Anger</button>
-                <button class="filter-btn" data-emotion="fear" style="--glow: #9d00ff">Fear</button>
-                <button class="filter-btn" data-emotion="energy" style="--glow: #00ff00">Energy</button>
-            </div>
+                <!DOCTYPE html>
+                <html lang="en">
 
-            <div id="tooltip" class="tooltip hidden"></div>
-        </div>
-    </div>
-    <script type="module" src="/static/app.js"></script>
-</body>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Emotia — Emotional Web Gravity Map</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700&display=swap"
+                        rel="stylesheet">
+                    <link rel="stylesheet" href="/static/style.css">
+                </head>
 
-</html>
+                <body>
+                    <div id="app">
+                        <!-- Background Canvas -->
+                        <canvas id="gravityCanvas"></canvas>
+
+                        <!-- Main UI Overlay -->
+                        <div class="ui-layer">
+                            <header class="glass-panel hero">
+                                <h1 class="logo">EMOTIA</h1>
+                                <p class="tagline">The emotional gravity of the web.</p>
+
+                                <div class="search-container">
+                                    <input type="text" id="urlInput" placeholder="Paste a URL to visualize..."
+                                        autocomplete="off" />
+                                    <button id="scrapeBtn">
+                                        <span class="btn-text">ANALYZE</span>
+                                        <div class="btn-glow"></div>
+                                    </button>
+                                </div>
+                            </header>
+
+                            <!-- Floating Filter Dock -->
+                            <div class="glass-panel dock">
+                                <button class="filter-btn active" data-emotion="all">All</button>
+                                <div class="separator"></div>
+                                <button class="filter-btn" data-emotion="joy" style="--glow: #ffd700">Joy</button>
+                                <button class="filter-btn" data-emotion="sadness"
+                                    style="--glow: #1e90ff">Sadness</button>
+                                <button class="filter-btn" data-emotion="anger" style="--glow: #ff4500">Anger</button>
+                                <button class="filter-btn" data-emotion="fear" style="--glow: #9d00ff">Fear</button>
+                                <button class="filter-btn" data-emotion="energy" style="--glow: #00ff00">Energy</button>
+                            </div>
+
+                            <div id="tooltip" class="tooltip hidden"></div>
+
+                            <!-- Floating Detail Card -->
+                            <div id="particleCard" class="glass-panel particle-card hidden">
+                                <div class="card-header">
+                                    <span id="cardEmotion" class="card-emotion">Emotion</span>
+                                    <button id="closeCardBtn" class="card-close">&times;</button>
+                                </div>
+                                <p id="cardText" class="card-body">Text content...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <script type="module" src="/static/app.js"></script>
+                </body>
+
+                </html>
