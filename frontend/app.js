@@ -1,10 +1,12 @@
-import { initCanvas, addDataPoint, clearCanvas } from './canvas.js';
+import { initCanvas, addDataPoint, clearCanvas, spawnDemoParticles } from './canvas.js';
 
 const scrapeBtn = document.getElementById('scrapeBtn');
 const urlInput = document.getElementById('urlInput');
+const uiLayer = document.querySelector('.ui-layer');
 
 // Start the animation loop
 initCanvas();
+spawnDemoParticles();
 
 scrapeBtn.addEventListener('click', async () => {
     const url = urlInput.value;
@@ -18,10 +20,10 @@ scrapeBtn.addEventListener('click', async () => {
     // UI Feedback
     scrapeBtn.textContent = "Analyzing...";
     scrapeBtn.disabled = true;
+    uiLayer.classList.add('analyzed');
 
     try {
         // Call our backend API
-        // Note: '/scrape' works because we're serving frontend from the same backend instance
         const response = await fetch('/scrape', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -46,6 +48,7 @@ scrapeBtn.addEventListener('click', async () => {
     } catch (error) {
         console.error("Analysis error:", error);
         alert("Something went wrong. Please check if the backend is running.");
+        uiLayer.classList.remove('analyzed'); // Revert UI on error
     } finally {
         // Reset UI
         scrapeBtn.textContent = "Analyze";

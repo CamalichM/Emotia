@@ -53,62 +53,97 @@ export function clearCanvas() {
     particles = [];
 }
 
+export function spawnDemoParticles() {
+    const demoTexts = [
+        { text: "This is amazing!", emotion: "joy" },
+        { text: "I feel so heavy today.", emotion: "sadness" },
+        { text: "Why is this happening?!", emotion: "anger" },
+        { text: "I'm nervous about the result.", emotion: "fear" },
+        { text: "Let's go! Can't wait!", emotion: "energy" },
+        { text: "Just a regular day.", emotion: "neutral" },
+        { text: "Love this new design.", emotion: "joy" },
+        { text: "It's a bit gloomy outside.", emotion: "sadness" },
+        { text: "So much energy in here!", emotion: "energy" }
+    ];
+
+    // Spawn a bunch of random particles
+    for (let i = 0; i < 20; i++) {
+        const randomData = demoTexts[Math.floor(Math.random() * demoTexts.length)];
+        // Add some variation to score
+        const data = { ...randomData, score: 0.5 + Math.random() * 0.5 };
+        particles.push(new Particle(data));
+    }
+}
+
 class Particle {
     constructor(data) {
         this.data = data;
-        this.x = width / 2 + (Math.random() - 0.5) * 200;
-        this.y = height / 2 + (Math.random() - 0.5) * 200;
-        this.vx = (Math.random() - 0.5) * 4;
-        this.vy = (Math.random() - 0.5) * 4;
+        this.x = width / 2 + (Math.random() - 0.5) * 400;
+        this.y = height / 2 + (Math.random() - 0.5) * 400;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
 
         const config = EMOTIONS[data.emotion] || EMOTIONS.neutral;
         this.config = config;
         this.color = config.color;
-        this.baseRadius = (4 + data.score * 8) * config.radiusMult;
+        this.baseRadius = (6 + data.score * 10) * config.radiusMult;
         this.radius = this.baseRadius;
+        this.isHovered = false;
     }
 
     update() {
+        // Check mouse distance
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Hover Interaction: STOP if close
+        if (dist < this.radius + 10) {
+            this.isHovered = true;
+            this.vx *= 0.5; // Heavy friction
+            this.vy *= 0.5;
+            return; // Skip other physics
+        } else {
+            this.isHovered = false;
+        }
+
         // 1. Base Physics (Gravity & Friction)
         this.vy += this.config.gravity;
         this.vx *= this.config.friction;
         this.vy *= this.config.friction;
 
-        // 2. Mouse Interaction (The "Innovation")
-        const dx = mouse.x - this.x;
-        const dy = mouse.y - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 300; // Interaction radius
+        // 2. Mouse Interaction (Magnetic Field)
+        const maxDist = 400;
 
         if (dist < maxDist) {
             const force = (maxDist - dist) / maxDist; // 0 to 1 strength
 
             switch (this.config.interaction) {
-                case 'attract': // Joy: Drawn to connection
-                    this.vx += dx * 0.001 * force;
-                    this.vy += dy * 0.001 * force;
+                case 'attract': // Joy
+                    this.vx += dx * 0.0005 * force;
+                    this.vy += dy * 0.0005 * force;
                     break;
-                case 'repel': // Sadness: Wants to be alone
-                    this.vx -= dx * 0.002 * force;
-                    this.vy -= dy * 0.002 * force;
+                case 'repel': // Sadness
+                    this.vx -= dx * 0.001 * force;
+                    this.vy -= dy * 0.001 * force;
                     break;
-                case 'agitate': // Anger: Vibrates intensely near mouse
+                case 'agitate': // Anger
                     this.vx += (Math.random() - 0.5) * 2 * force;
                     this.vy += (Math.random() - 0.5) * 2 * force;
                     break;
-                case 'flee': // Fear: Runs away fast
-                    if (dist < 150) {
-                        this.vx -= dx * 0.01 * force;
-                        this.vy -= dy * 0.01 * force;
+                case 'flee': // Fear
+                    if (dist < 200) {
+                        this.vx -= dx * 0.005 * force;
+                        this.vy -= dy * 0.005 * force;
                     }
                     break;
-                case 'orbit': // Energy: Swirls around
-                    this.vx += -dy * 0.005 * force;
-                    this.vy += dx * 0.005 * force;
+                case 'orbit': // Energy
+                    this.vx += -dy * 0.002 * force;
+                    this.vy += dx * 0.002 * force;
                     break;
-                case 'nudge': // Neutral: Gentle push
-                    this.vx -= dx * 0.0005 * force;
-                    this.vy -= dy * 0.0005 * force;
+                case 'nudge': // Neutral
+                    this.vx -= dx * 0.0002 * force;
+                    this.vy -= dy * 0.0002 * force;
                     break;
             }
         }
@@ -151,16 +186,32 @@ class Particle {
         ctx.globalAlpha = 1.0;
         ctx.fill();
 
-        // Hover detection for tooltip
-        const dx = mouse.x - this.x;
-        const dy = mouse.y - this.y;
-        return Math.sqrt(dx * dx + dy * dy) < this.radius + 14;
+        // Hover Text - Fixed Position (Right Side)
+        if (this.isHovered) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Outfit';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            // Draw background pill for text
+            const text = this.data.text.length > 30 ? this.data.text.substring(0, 30) + "..." : this.data.text;
+            const textWidth = ctx.measureText(text).width;
+            const padding = 8;
+            const boxX = this.x + this.radius + 10;
+            const boxY = this.y - 15;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.beginPath();
+            ctx.roundRect(boxX, boxY, textWidth + padding * 2, 30, 8);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.fillText(text, boxX + padding, boxY + 15);
+        }
     }
 }
 
 function animate() {
-    hoveredParticle = null;
-
     // Trail effect
     ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; // Fades out previous frames
     ctx.fillRect(0, 0, width, height);
@@ -171,10 +222,7 @@ function animate() {
     for (let i = 0; i < particles.length; i++) {
         const p1 = particles[i];
         p1.update();
-        const isHovered = p1.draw();
-        if (isHovered) {
-            hoveredParticle = p1;
-        }
+        p1.draw();
 
         if (activeFilter !== 'all' && p1.data.emotion !== activeFilter) continue;
 
@@ -197,18 +245,5 @@ function animate() {
         }
     }
 
-    updateTooltip();
-
     requestAnimationFrame(animate);
-}
-
-function updateTooltip() {
-    if (!hoveredParticle) {
-        tooltip.classList.add('hidden');
-        return;
-    }
-
-    tooltip.textContent = hoveredParticle.data.text;
-    tooltip.classList.remove('hidden');
-    tooltip.style.transform = `translate(${hoveredParticle.x + hoveredParticle.radius + 14}px, ${hoveredParticle.y - hoveredParticle.radius - 10}px)`;
 }
