@@ -90,15 +90,15 @@ class PDFReport(FPDF):
         # Reset color
         self.set_text_color(0, 0, 0)
 
-def generate_report_pdf(items, filename="report.pdf"):
+def generate_report_pdf(items):
     pdf = PDFReport()
     pdf.add_page()
-    
+
     # 1. Statistics Section
     pdf.add_statistics(items)
-    
+
     # 2. Colored Text Section
     pdf.add_colored_text(items)
-    
-    pdf.output(filename)
-    return filename
+
+    # Return the PDF as raw bytes so callers can stream without touching disk
+    return pdf.output(dest="S").encode("latin-1")

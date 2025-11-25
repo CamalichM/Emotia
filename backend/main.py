@@ -146,31 +146,15 @@ def get_items():
 @app.post("/download_report")
 async def download_report_endpoint(request: ReportRequest):
     try:
+        if not request.items:
+            raise HTTPException(status_code=400, detail="No analysis data provided for the report.")
+
         print(f"Received download request for {len(request.items)} items")
         items_data = [item.dict() for item in request.items]
-        
-        import tempfile
-        # Create a temp file but close it immediately so FPDF can open it
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            filename = tmp.name
-            
-        print(f"Generating PDF to temp file: {filename}")
-        try:
-            generate_report_pdf(items_data, filename)
-            print("PDF generated successfully")
-            
-            # Read file into memory
-            with open(filename, "rb") as f:
-                pdf_content = f.read()
-            print(f"Read PDF content: {len(pdf_content)} bytes")
-        finally:
-            # Cleanup
-            if os.path.exists(filename):
-                try:
-                    os.remove(filename)
-                except Exception as e:
-                    print(f"Cleanup warning: {e}")
-            
+        print("Generating PDF in-memory")
+        pdf_content = generate_report_pdf(items_data)
+        print(f"PDF generated successfully ({len(pdf_content)} bytes)")
+
         return StreamingResponse(
             io.BytesIO(pdf_content),
             media_type="application/pdf",
