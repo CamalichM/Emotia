@@ -45,4 +45,4 @@ Open `http://localhost:8000` in your browser. That's it.
 *   **FPDF**: For generating the reports.
 
 ---
-*Built with 💜 by [Your Name/Handle]*
+Marco Camalich
