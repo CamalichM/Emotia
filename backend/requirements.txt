@@ -9,3 +9,4 @@ torch
 scipy
 fpdf
 pypdf
+unidecode

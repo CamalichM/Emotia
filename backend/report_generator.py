@@ -1,5 +1,6 @@
 from fpdf import FPDF
 from collections import Counter
+from unidecode import unidecode
 
 class PDFReport(FPDF):
     """
@@ -25,14 +26,13 @@ class PDFReport(FPDF):
     def clean_text(self, text):
         """
         Aggressively cleans text to ensure compatibility with FPDF (Latin-1).
-        Removes emojis and unsupported characters.
+        Uses unidecode to transliterate characters (e.g. 'ñ' -> 'n', '😊' -> '').
         """
         if not isinstance(text, str):
             return str(text)
         try:
-            # Encode to latin-1, ignoring characters that can't be represented (like emojis)
-            # This effectively "erases" them as requested.
-            return text.encode('latin-1', 'ignore').decode('latin-1')
+            # Transliterate to closest ASCII representation
+            return unidecode(text)
         except Exception:
             return ""
 
