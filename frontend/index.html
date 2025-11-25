@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emotia — Emotional Web Gravity Map</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="app">
         <header>
@@ -15,6 +17,14 @@
                 <button id="scrapeBtn">Analyze</button>
             </div>
         </header>
+        <div class="filters">
+            <button class="filter-btn active" data-emotion="all">All</button>
+            <button class="filter-btn" data-emotion="joy" style="--btn-color: #ffd700">Joy</button>
+            <button class="filter-btn" data-emotion="sadness" style="--btn-color: #1e90ff">Sadness</button>
+            <button class="filter-btn" data-emotion="anger" style="--btn-color: #ff4500">Anger</button>
+            <button class="filter-btn" data-emotion="fear" style="--btn-color: #800080">Fear</button>
+            <button class="filter-btn" data-emotion="energy" style="--btn-color: #00ff00">Energy</button>
+        </div>
         <main>
             <canvas id="gravityCanvas"></canvas>
             <div id="overlay"></div>
@@ -22,4 +32,5 @@
     </div>
     <script type="module" src="app.js"></script>
 </body>
+
 </html>
