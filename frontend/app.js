@@ -97,63 +97,82 @@ window.addEventListener('load', () => {
         }, 4000);
     }
 
-    // --- Download Report Logic ---
-    const downloadBtn = document.getElementById('downloadBtn');
+    // --- Report Logic ---
+    const viewReportBtn = document.getElementById('viewReportBtn');
+    const reportModal = document.getElementById('reportModal');
+    const closeReportBtn = document.getElementById('closeReportBtn');
+    const reportStats = document.getElementById('reportStats');
+    const reportText = document.getElementById('reportText');
     let currentAnalysisItems = [];
 
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', async () => {
+    // Close Modal Logic
+    if (closeReportBtn && reportModal) {
+        closeReportBtn.addEventListener('click', () => {
+            reportModal.classList.add('hidden');
+        });
+        // Close on click outside
+        reportModal.addEventListener('click', (e) => {
+            if (e.target === reportModal) {
+                reportModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (viewReportBtn) {
+        viewReportBtn.addEventListener('click', () => {
             if (currentAnalysisItems.length === 0) {
-                showToast("Run an analysis before downloading the report.", "info");
+                showToast("Run an analysis first.", "info");
                 return;
             }
 
-            const sanitizedItems = currentAnalysisItems.map(({ text, emotion, score, method, polarity, subjectivity }) => ({
-                text,
-                emotion,
-                score,
-                method,
-                polarity,
-                subjectivity
-            }));
+            // 1. Calculate Statistics
+            const total = currentAnalysisItems.length;
+            const counts = {};
+            currentAnalysisItems.forEach(item => {
+                const emotion = item.emotion || 'neutral';
+                counts[emotion] = (counts[emotion] || 0) + 1;
+            });
 
-            downloadBtn.innerHTML = '<span class="spinner"></span>';
-            downloadBtn.disabled = true;
-
-            try {
-                const response = await fetch('/download_report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items: sanitizedItems })
+            // 2. Render Stats
+            reportStats.innerHTML = '';
+            // Sort by count descending
+            Object.entries(counts)
+                .sort(([, a], [, b]) => b - a)
+                .forEach(([emotion, count]) => {
+                    const percentage = ((count / total) * 100).toFixed(1);
+                    const card = document.createElement('div');
+                    card.className = 'stat-card';
+                    card.innerHTML = `
+                        <div class="stat-value" style="color: var(--glow-${emotion}, #fff)">${count}</div>
+                        <div class="stat-label">${emotion} (${percentage}%)</div>
+                    `;
+                    // Add custom style for color if not using CSS vars for text
+                    const colors = {
+                        joy: '#ffd700', sadness: '#1e90ff', anger: '#ff4500',
+                        fear: '#9d00ff', energy: '#00ff00', neutral: '#808080'
+                    };
+                    card.querySelector('.stat-value').style.color = colors[emotion] || '#fff';
+                    reportStats.appendChild(card);
                 });
 
-                if (!response.ok) {
-                    let detail = "Failed to generate report";
-                    try {
-                        const errData = await response.json();
-                        detail = errData.detail || detail;
-                    } catch (_) { }
-                    throw new Error(detail);
-                }
+            // 3. Render Colored Text
+            reportText.innerHTML = '';
+            const colors = {
+                joy: '#ffd700', sadness: '#1e90ff', anger: '#ff4500',
+                fear: '#9d00ff', energy: '#00ff00', neutral: '#808080'
+            };
 
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "emotia_report.pdf";
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
+            currentAnalysisItems.forEach(item => {
+                const span = document.createElement('span');
+                span.textContent = item.text + ' ';
+                span.className = 'colored-text-span';
+                span.style.color = colors[item.emotion] || '#808080';
+                span.title = `${item.emotion} (${(item.score * 100).toFixed(0)}%)`;
+                reportText.appendChild(span);
+            });
 
-                showToast("Report downloaded successfully!", "success");
-            } catch (error) {
-                console.error("Download error:", error);
-                showToast("Failed to download report.", "error");
-            } finally {
-                downloadBtn.innerHTML = '<span class="btn-text">⬇ PDF</span>';
-                downloadBtn.disabled = false;
-            }
+            // 4. Show Modal
+            reportModal.classList.remove('hidden');
         });
     }
 
@@ -163,7 +182,7 @@ window.addEventListener('load', () => {
             // UI Feedback
             scrapeBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
             scrapeBtn.disabled = true;
-            if (downloadBtn) downloadBtn.classList.add('hidden');
+            if (viewReportBtn) viewReportBtn.classList.add('hidden');
             hideTooltip();
 
             // Transition UI to analyzed state
@@ -219,10 +238,10 @@ window.addEventListener('load', () => {
 
                 if (data.items.length === 0) {
                     showToast("No analyzable content found.", "info");
-                    if (downloadBtn) downloadBtn.classList.add('hidden');
+                    if (viewReportBtn) viewReportBtn.classList.add('hidden');
                 } else {
                     showToast(`Analysis complete! Found ${data.items.length} emotional points.`, "success");
-                    if (downloadBtn) downloadBtn.classList.remove('hidden');
+                    if (viewReportBtn) viewReportBtn.classList.remove('hidden');
                 }
 
                 data.items.forEach(item => {
@@ -233,7 +252,7 @@ window.addEventListener('load', () => {
                 console.error("Analysis error:", error);
                 showToast(error.message, "error");
                 currentAnalysisItems = [];
-                if (downloadBtn) downloadBtn.classList.add('hidden');
+                if (viewReportBtn) viewReportBtn.classList.add('hidden');
             } finally {
                 // Restore button state
                 scrapeBtn.innerHTML = '<span class="btn-text">ANALYZE</span><div class="btn-glow"></div>';

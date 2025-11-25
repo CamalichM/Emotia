@@ -46,14 +46,13 @@
                             <input type="file" id="fileInput" accept=".pdf" />
                         </div>
 
-                        <button id="scrapeBtn">
+                        <button id="scrapeBtn" class="action-btn">
                             <span class="btn-text">ANALYZE</span>
                             <div class="btn-glow"></div>
                         </button>
 
-                        <button id="downloadBtn" class="hidden"
-                            style="margin-left: 10px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 0 15px; cursor: pointer;">
-                            <span class="btn-text">⬇ PDF</span>
+                        <button id="viewReportBtn" class="action-btn secondary hidden">
+                            <span class="btn-text">📊 View Report</span>
                         </button>
                     </div>
                 </div>
@@ -80,6 +79,28 @@
                     <button id="closeCardBtn" class="card-close">&times;</button>
                 </div>
                 <p id="cardText" class="card-body">Text content...</p>
+            </div>
+
+            <!-- Report Modal -->
+            <div id="reportModal" class="modal hidden">
+                <div class="modal-content glass-panel">
+                    <button id="closeReportBtn" class="close-btn">&times;</button>
+                    <h2>Emotional Analysis Report</h2>
+
+                    <div class="report-section">
+                        <h3>Statistics</h3>
+                        <div id="reportStats" class="stats-grid">
+                            <!-- Stats injected here -->
+                        </div>
+                    </div>
+
+                    <div class="report-section">
+                        <h3>Detailed Analysis</h3>
+                        <div id="reportText" class="colored-text-container">
+                            <!-- Colored text injected here -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Toast Container -->

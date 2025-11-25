@@ -69,24 +69,26 @@ def get_keyword_emotion(text: str):
 def analyze_emotion(text: str):
     """
     Analyzes the sentiment of the text and maps it to a primary emotion.
-    Supports multi-language by detecting and translating to English if needed.
+    Automatically translates non-English text to English for analysis.
     Returns a dictionary with emotion label and intensity score.
     """
     original_text = text
-    detected_lang = "en"
     processing_text = text
+    is_translated = False
 
-    # 1. Language Detection & Translation
+    # 1. Auto-Translation
     try:
-        if len(text.strip()) > 3: # Only detect for sufficient length
-            detected_lang = detect(text)
-            if detected_lang != 'en':
-                # Translate to English for analysis
-                processing_text = GoogleTranslator(source='auto', target='en').translate(text)
-                logger.info(f"Translated ({detected_lang}): '{text}' -> '{processing_text}'")
+        if len(text.strip()) > 2:
+            # GoogleTranslator with source='auto' handles detection better than langdetect
+            translator = GoogleTranslator(source='auto', target='en')
+            translated = translator.translate(text)
+            
+            if translated and translated.lower() != text.lower():
+                processing_text = translated
+                is_translated = True
+                logger.info(f"Translated: '{text}' -> '{processing_text}'")
     except Exception as e:
-        logger.warning(f"Language detection/translation failed: {e}")
-        # Continue with original text
+        logger.warning(f"Translation failed: {e}")
 
     # 2. Try AI Model if available
     if emotion_classifier:
@@ -111,12 +113,12 @@ def analyze_emotion(text: str):
             elif ai_emotion == "neutral": mapped_emotion = "neutral"
             
             return {
-                "text": original_text, # Return original text
+                "text": original_text,
                 "emotion": mapped_emotion,
                 "score": ai_score,
                 "method": "ai_transformer",
-                "language": detected_lang,
-                "translated_text": processing_text if detected_lang != 'en' else None
+                "is_translated": is_translated,
+                "translated_text": processing_text if is_translated else None
             }
         except Exception as e:
             logger.error(f"AI Inference failed: {e}")
