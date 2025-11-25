@@ -46,6 +46,12 @@ export function initCanvas() {
     const cardText = document.getElementById('cardText');
     const closeCardBtn = document.getElementById('closeCardBtn');
 
+    // Force hide on init
+    if (card) {
+        card.classList.add('hidden');
+        card.style.display = 'none';
+    }
+
     selectedParticleRef = null;
 
     canvas.addEventListener('click', (e) => {
@@ -73,6 +79,7 @@ export function initCanvas() {
                 // Toggle off if clicking same one
                 selectedParticleRef = null;
                 card.classList.add('hidden');
+                card.style.display = 'none';
             } else {
                 // Select new one
                 selectedParticleRef = clicked;
@@ -83,17 +90,20 @@ export function initCanvas() {
                 cardText.textContent = clicked.data.text;
 
                 card.classList.remove('hidden');
+                card.style.display = 'block';
             }
         } else {
             // Clicked empty space - deselect
             selectedParticleRef = null;
             card.classList.add('hidden');
+            card.style.display = 'none';
         }
     });
 
     closeCardBtn.addEventListener('click', () => {
         selectedParticleRef = null;
         card.classList.add('hidden');
+        card.style.display = 'none';
     });
 
     animate();
@@ -243,7 +253,7 @@ class Particle {
 
         if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
         if (this.x > width - this.radius) { this.x = width - this.radius; this.vx *= -0.5; }
-        if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.5; }
+        if (this.y < this.radius + 70) { this.y = this.radius + 70; this.vy *= -0.5; }
         if (this.y > height - this.radius) { this.y = height - this.radius; this.vy *= -0.5; }
     }
 
@@ -342,14 +352,41 @@ function animate() {
     if (selectedParticleRef) {
         const card = document.getElementById('particleCard');
         if (card && !card.classList.contains('hidden')) {
-            // Position card to the right of the particle
-            const cardX = selectedParticleRef.x + selectedParticleRef.radius + 20;
-            const cardY = selectedParticleRef.y - 50; // Slightly above center
+            const cardRect = card.getBoundingClientRect();
+            const cardWidth = cardRect.width || 220;
+            const cardHeight = cardRect.height || 150;
 
-            // Keep on screen
-            // (Simple clamping logic can be added here if needed)
+            // Initial Position: Right of particle, centered vertically
+            let cardX = selectedParticleRef.x + selectedParticleRef.radius + 8;
+            let cardY = selectedParticleRef.y - cardHeight / 2;
+
+            // 1. Horizontal Clamping
+            // If it goes off the right edge, flip to the left
+            if (cardX + cardWidth > width - 10) {
+                cardX = selectedParticleRef.x - selectedParticleRef.radius - cardWidth - 15;
+            }
+            // If flipping makes it go off the left edge, clamp it to the left edge
+            if (cardX < 10) {
+                cardX = 10;
+            }
+
+            // 2. Vertical Clamping
+            // If it goes off the bottom, shift up
+            if (cardY + cardHeight > height - 10) {
+                cardY = height - cardHeight - 10;
+            }
+            // If it goes off the top, shift down
+            if (cardY < 10) {
+                cardY = 10;
+            }
 
             card.style.transform = `translate(${cardX}px, ${cardY}px)`;
+        }
+    } else {
+        // Double safety: Ensure hidden if no particle selected
+        const card = document.getElementById('particleCard');
+        if (card && !card.classList.contains('hidden')) {
+            card.classList.add('hidden');
         }
     }
 

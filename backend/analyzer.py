@@ -17,10 +17,10 @@ def analyze_emotion(text: str):
     emotion = "neutral"
     score = 0.5
     
-    if polarity > 0.3:
+    if polarity > 0.1:
         emotion = "joy"
         score = polarity
-    elif polarity < -0.3:
+    elif polarity < -0.1:
         emotion = "sadness"
         score = abs(polarity)
     elif subjectivity > 0.5 and polarity < 0:
