@@ -22,6 +22,20 @@ class PDFReport(FPDF):
         self.cell(0, 6, title, 0, 1, 'L', 1)
         self.ln(4)
 
+    def clean_text(self, text):
+        """
+        Aggressively cleans text to ensure compatibility with FPDF (Latin-1).
+        Removes emojis and unsupported characters.
+        """
+        if not isinstance(text, str):
+            return str(text)
+        try:
+            # Encode to latin-1, ignoring characters that can't be represented (like emojis)
+            # This effectively "erases" them as requested.
+            return text.encode('latin-1', 'ignore').decode('latin-1')
+        except Exception:
+            return ""
+
     def add_statistics(self, items):
         """
         Generates a statistics table showing the count and percentage of each emotion.
@@ -46,12 +60,7 @@ class PDFReport(FPDF):
         # Table Rows
         self.set_font('Arial', '', 11)
         for emotion, count in counts.most_common():
-            # Sanitize emotion name to prevent encoding errors
-            try:
-                safe_emotion = emotion.encode('latin-1', 'replace').decode('latin-1')
-            except:
-                safe_emotion = "Unknown"
-                
+            safe_emotion = self.clean_text(emotion)
             percentage = (count / total) * 100
             self.cell(60, 8, safe_emotion.capitalize(), 1)
             self.cell(40, 8, str(count), 1)
@@ -79,25 +88,22 @@ class PDFReport(FPDF):
 
         for item in items:
             emotion = item.get('emotion', 'neutral')
-            text = item.get('text', '')
+            raw_text = item.get('text', '')
             
-            # Sanitize text for FPDF (Latin-1 only)
-            # Replace unsupported characters (like emojis) with '?' to avoid crashes
-            try:
-                text = text.encode('latin-1', 'replace').decode('latin-1')
-            except Exception:
-                text = "[Complex text removed]"
+            # Clean the text
+            text = self.clean_text(raw_text)
+            if not text.strip():
+                continue
 
             # Set color
             r, g, b = colors.get(emotion, (0, 0, 0))
             self.set_text_color(r, g, b)
             
             # Write text
-            # write() handles wrapping and keeps cursor flowing
             try:
                 self.write(6, text + " ")
             except Exception:
-                pass # Skip if write fails
+                pass 
         
         # Reset color
         self.set_text_color(0, 0, 0)
@@ -116,6 +122,6 @@ def generate_report_pdf(items):
     # 2. Colored Text Section
     pdf.add_colored_text(items)
 
-    # Return the PDF as raw bytes so callers can stream without touching disk
-    # Use 'replace' to handle any remaining unencodable characters in the final output
-    return pdf.output(dest="S").encode("latin-1", errors='replace')
+    # Return the PDF as raw bytes
+    # We use 'latin-1' encoding for the output string to get the raw bytes
+    return pdf.output(dest="S").encode("latin-1", errors='ignore')
