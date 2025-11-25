@@ -18,6 +18,9 @@ const EMOTIONS = {
     neutral: { color: '#808080', gravity: 0, friction: 0.95, radiusMult: 0.8, interaction: 'nudge' }
 };
 
+// Global reference for the selected particle
+let selectedParticleRef = null;
+
 export function initCanvas() {
     resize();
     window.addEventListener('resize', resize);
@@ -37,48 +40,63 @@ export function initCanvas() {
         });
     });
 
-    animate();
+    // Click Interaction for Floating Card
+    const card = document.getElementById('particleCard');
+    const cardEmotion = document.getElementById('cardEmotion');
+    const cardText = document.getElementById('cardText');
+    const closeCardBtn = document.getElementById('closeCardBtn');
 
-    // Click Interaction for Modal
-    const modal = document.getElementById('textModal');
-    const modalEmotion = document.getElementById('modalEmotion');
-    const modalText = document.getElementById('modalText');
-    const closeBtn = document.getElementById('closeModalBtn');
+    selectedParticleRef = null;
 
     canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
 
-        // Check if any particle was clicked
-        // Iterate backwards to catch top-most particles first
+        let clicked = null;
+
+        // Check click (iterate backwards for z-index)
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             const dx = clickX - p.x;
             const dy = clickY - p.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist < p.radius + 5) { // +5 padding for easier clicking
-                // Open Modal
-                modalEmotion.textContent = p.data.emotion;
-                modalEmotion.style.color = p.color; // Match emotion color
-                modalText.textContent = p.data.text;
-                modal.classList.remove('hidden');
-                break; // Only open for one
+            if (dist < p.radius + 10) {
+                clicked = p;
+                break;
             }
         }
-    });
 
-    // Close Modal Logic
-    closeBtn.addEventListener('click', () => {
-        modal.classList.add('hidden');
-    });
+        if (clicked) {
+            if (selectedParticleRef === clicked) {
+                // Toggle off if clicking same one
+                selectedParticleRef = null;
+                card.classList.add('hidden');
+            } else {
+                // Select new one
+                selectedParticleRef = clicked;
 
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
+                // Update Content
+                cardEmotion.textContent = clicked.data.emotion;
+                cardEmotion.style.color = clicked.color;
+                cardText.textContent = clicked.data.text;
+
+                card.classList.remove('hidden');
+            }
+        } else {
+            // Clicked empty space - deselect
+            selectedParticleRef = null;
+            card.classList.add('hidden');
         }
     });
+
+    closeCardBtn.addEventListener('click', () => {
+        selectedParticleRef = null;
+        card.classList.add('hidden');
+    });
+
+    animate();
 }
 
 function resize() {
@@ -251,8 +269,18 @@ class Particle {
         ctx.globalAlpha = 1.0;
         ctx.fill();
 
+        // Selection Ring
+        if (this === selectedParticleRef) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
         // Hover Text - Fixed Position (Right Side)
-        if (this.isHovered) {
+        // Only show if NOT selected (to avoid clutter)
+        if (this.isHovered && this !== selectedParticleRef) {
             ctx.fillStyle = '#fff';
             ctx.font = '14px Outfit';
             ctx.textAlign = 'left';
@@ -307,6 +335,21 @@ function animate() {
                 ctx.lineTo(p2.x, p2.y);
                 ctx.stroke();
             }
+        }
+    }
+
+    // Update Floating Card Position
+    if (selectedParticleRef) {
+        const card = document.getElementById('particleCard');
+        if (card && !card.classList.contains('hidden')) {
+            // Position card to the right of the particle
+            const cardX = selectedParticleRef.x + selectedParticleRef.radius + 20;
+            const cardY = selectedParticleRef.y - 50; // Slightly above center
+
+            // Keep on screen
+            // (Simple clamping logic can be added here if needed)
+
+            card.style.transform = `translate(${cardX}px, ${cardY}px)`;
         }
     }
 
