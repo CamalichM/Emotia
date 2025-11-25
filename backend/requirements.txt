@@ -10,3 +10,5 @@ scipy
 fpdf
 pypdf
 unidecode
+deep_translator
+langdetect

@@ -1,6 +1,8 @@
 from textblob import TextBlob
 import re
 import logging
+from langdetect import detect, LangDetectException
+from deep_translator import GoogleTranslator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -67,13 +69,30 @@ def get_keyword_emotion(text: str):
 def analyze_emotion(text: str):
     """
     Analyzes the sentiment of the text and maps it to a primary emotion.
+    Supports multi-language by detecting and translating to English if needed.
     Returns a dictionary with emotion label and intensity score.
     """
-    # 1. Try AI Model if available
+    original_text = text
+    detected_lang = "en"
+    processing_text = text
+
+    # 1. Language Detection & Translation
+    try:
+        if len(text.strip()) > 3: # Only detect for sufficient length
+            detected_lang = detect(text)
+            if detected_lang != 'en':
+                # Translate to English for analysis
+                processing_text = GoogleTranslator(source='auto', target='en').translate(text)
+                logger.info(f"Translated ({detected_lang}): '{text}' -> '{processing_text}'")
+    except Exception as e:
+        logger.warning(f"Language detection/translation failed: {e}")
+        # Continue with original text
+
+    # 2. Try AI Model if available
     if emotion_classifier:
         try:
             # Model returns a list of lists of dicts
-            results = emotion_classifier(text)[0]
+            results = emotion_classifier(processing_text)[0]
             # Sort by score descending
             results.sort(key=lambda x: x['score'], reverse=True)
             top_result = results[0]
@@ -92,27 +111,30 @@ def analyze_emotion(text: str):
             elif ai_emotion == "neutral": mapped_emotion = "neutral"
             
             return {
-                "text": text,
+                "text": original_text, # Return original text
                 "emotion": mapped_emotion,
                 "score": ai_score,
-                "method": "ai_transformer"
+                "method": "ai_transformer",
+                "language": detected_lang,
+                "translated_text": processing_text if detected_lang != 'en' else None
             }
         except Exception as e:
             logger.error(f"AI Inference failed: {e}")
             # Fall through to fallback
 
-    # 2. Fallback: Keyword Matching
-    keyword_emotion, keyword_score = get_keyword_emotion(text)
+    # 3. Fallback: Keyword Matching (on translated text)
+    keyword_emotion, keyword_score = get_keyword_emotion(processing_text)
     if keyword_emotion:
         return {
-            "text": text,
+            "text": original_text,
             "emotion": keyword_emotion,
             "score": keyword_score,
-            "method": "keyword_fallback"
+            "method": "keyword_fallback",
+            "language": detected_lang
         }
 
-    # 3. Fallback: TextBlob Sentiment
-    blob = TextBlob(text)
+    # 4. Fallback: TextBlob Sentiment (on translated text)
+    blob = TextBlob(processing_text)
     polarity = blob.sentiment.polarity
     subjectivity = blob.sentiment.subjectivity
     
@@ -136,10 +158,11 @@ def analyze_emotion(text: str):
         score = 0.3
         
     return {
-        "text": text,
+        "text": original_text,
         "emotion": emotion,
         "score": score,
         "polarity": polarity,
         "subjectivity": subjectivity,
-        "method": "sentiment_fallback"
+        "method": "sentiment_fallback",
+        "language": detected_lang
     }
