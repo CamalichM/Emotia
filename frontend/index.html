@@ -19,7 +19,7 @@
         <!-- Main UI Overlay -->
         <div class="ui-layer">
             <header class="glass-panel hero">
-                <h1 class="logo">EMOTIA</h1>
+                <h1 class="logo" onclick="window.location.reload()">EMOTIA</h1>
                 <p class="tagline">The emotional gravity of the web.</p>
 
                 <div class="input-wrapper">
@@ -75,6 +75,9 @@
                 </div>
                 <p id="cardText" class="card-body">Text content...</p>
             </div>
+
+            <!-- Toast Container -->
+            <div id="toast-container" class="toast-container"></div>
         </div>
     </div>
     <script type="module" src="/static/app.js?v=2"></script>

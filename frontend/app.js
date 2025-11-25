@@ -69,10 +69,37 @@ window.addEventListener('load', () => {
     if (inputs.text) inputs.text.addEventListener('focus', hideTooltip);
     if (inputs.text) inputs.text.addEventListener('input', hideTooltip);
 
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        // Icon based on type
+        let icon = '';
+        if (type === 'error') icon = '⚠️';
+        else if (type === 'success') icon = '✅';
+        else icon = 'ℹ️';
+
+        toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+        container.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, 4000);
+    }
+
     if (scrapeBtn) {
         scrapeBtn.addEventListener('click', async () => {
             // UI Feedback
-            scrapeBtn.textContent = "Analyzing...";
+            const originalBtnText = scrapeBtn.innerHTML;
+            scrapeBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
             scrapeBtn.disabled = true;
             hideTooltip();
 
@@ -126,7 +153,9 @@ window.addEventListener('load', () => {
                 clearCanvas();
 
                 if (data.items.length === 0) {
-                    showNoContentMessage();
+                    showToast("No analyzable content found.", "info");
+                } else {
+                    showToast(`Analysis complete! Found ${data.items.length} emotional points.`, "success");
                 }
 
                 data.items.forEach(item => {
@@ -135,44 +164,16 @@ window.addEventListener('load', () => {
 
             } catch (error) {
                 console.error("Analysis error:", error);
-                scrapeBtn.textContent = "Error";
-                scrapeBtn.style.background = "#ff4500"; // Red for error
-
-                // Show error in tooltip or a toast instead of alert
-                const tooltip = document.getElementById('tooltip');
-                tooltip.textContent = error.message;
-                tooltip.classList.remove('hidden');
-                tooltip.style.top = '50%';
-                tooltip.style.left = '50%';
-                tooltip.style.transform = 'translate(-50%, -50%)';
-
-                setTimeout(() => {
-                    tooltip.classList.add('hidden');
-                    scrapeBtn.textContent = "ANALYZE";
-                    scrapeBtn.style.background = "";
-                    scrapeBtn.disabled = false;
-                }, 3000);
-
-                uiLayer.classList.remove('analyzed');
+                showToast(error.message, "error");
+                
+                // Revert UI state if it was the first analysis and it failed
+                // But keep it analyzed if we already had content
+                // uiLayer.classList.remove('analyzed'); 
             } finally {
-                if (scrapeBtn.textContent === "Analyzing...") {
-                    scrapeBtn.textContent = "ANALYZE";
-                    scrapeBtn.disabled = false;
-                }
+                // Restore button state
+                scrapeBtn.innerHTML = '<span class="btn-text">ANALYZE</span><div class="btn-glow"></div>';
+                scrapeBtn.disabled = false;
             }
         });
-    }
-
-    function showNoContentMessage() {
-        const tooltip = document.getElementById('tooltip');
-        tooltip.textContent = "No analyzable content found.";
-        tooltip.classList.remove('hidden');
-        tooltip.style.top = '50%';
-        tooltip.style.left = '50%';
-        tooltip.style.transform = 'translate(-50%, -50%)';
-
-        setTimeout(() => {
-            tooltip.classList.add('hidden');
-        }, 3000);
     }
 });
